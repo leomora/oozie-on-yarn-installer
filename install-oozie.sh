@@ -15,6 +15,8 @@ OOZIE_VERSION=3.3.2
 MVN_PROFILE_HADOOP_VERSION=hadoop-23
 ##How Oozie calls your above Hadoop version
 OOZIE_HADOOP_VERSION=hadoop-2
+OOZIE_HADOOP_DEFAULT_AUTH_VERSION=2.0.3
+
 ##Your hadoop user
 HADOOP_USER=jose
 ##Where you want to install Oozie
@@ -32,21 +34,25 @@ cd $DOWNLOAD_DIR
 wget http://archive.apache.org/dist/oozie/$OOZIE_VERSION/oozie-$OOZIE_VERSION.tar.gz
 tar xzvf oozie-$OOZIE_VERSION.tar.gz
 
+# Generate Distro
 cd $BUILD_DIR
+bin/mkdistro.sh
 
-##Hadoop 2 needs client 2.3.0 + , default 2.0.2 will fail
-##        This is required while Oozie supports a a pre 0.23 version of Hadoop which does not have
-##        the hadoop-auth artifact. After Oozie phase-out pre 0.23 we can get rid of this property.
-OOZIE_HADOOP_DEFAULT_AUTH_VERSION=`xmllint --xpath "(//*[local-name()='hadoop.auth.version']/text())[1]" $BUILD_DIR/pom.xml`
-OOZIE_HADOOP_AUTH_VERSION=2.3.0
+
+
+## Update the pom.xml and download the appropiate hadoop libraries (this libraries will be sent to libext)
+
 ##update hadoop-client in main pom.xml
 sed -i 's/<hadoop.auth.version>'"$OOZIE_HADOOP_DEFAULT_AUTH_VERSION"'<\/hadoop.auth.version>/<hadoop.auth.version>'"$OOZIE_HADOOP_AUTH_VERSION"'<\/hadoop.auth.version>/' $BUILD_DIR/pom.xml 
+
 ##update hadoop-client in hadoop 2/hadooplibs  pom.xml
 sed -i 's/<version>'"$OOZIE_HADOOP_DEFAULT_AUTH_VERSION"'/<version>'"$OOZIE_HADOOP_AUTH_VERSION"'/' $BUILD_DIR/hadooplibs/hadoop-2/pom.xml 
 
 
 ##compiling
 mvn -DskipTests=true -P $MVN_PROFILE_HADOOP_VERSION clean package assembly:single    
+
+##.......................................
 
 ##copy bin to OOZIE_HOME
 mkdir -p $OOZIE_HOME
